@@ -1,0 +1,963 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: Workspace overview
+  - name: analyses
+    description: Interior analyses
+  - name: quotes
+    description: Project quotes
+  - name: vendors
+    description: Vendor directory
+  - name: insights
+    description: Evidence-backed insights
+  - name: account
+    description: Account settings
+  - name: storage
+    description: Private quotation file storage
+  - name: extraction
+    description: Structured quotation document extraction
+  - name: intelligence
+    description: Evidence-backed quotation intelligence
+  - name: vendor-check
+    description: Public review and complaint-source checks for vendors
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /analyses:
+    get:
+      operationId: listAnalyses
+      tags: [analyses]
+      summary: List analyses
+      responses:
+        "200":
+          description: Analysis list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Analysis"
+    post:
+      operationId: createAnalysis
+      tags: [analyses]
+      summary: Create an analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisInput"
+      responses:
+        "201":
+          description: Created analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+  /analyses/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [analyses]
+      summary: Get an analysis
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Analysis detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+  /analyses/{id}/extraction:
+    get:
+      operationId: getQuotationExtraction
+      tags: [extraction]
+      summary: Get the saved structured quotation extraction
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Extraction status and structured result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotationExtraction"
+    post:
+      operationId: extractQuotation
+      tags: [extraction]
+      summary: Extract structured data from an uploaded quotation
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Existing or newly completed extraction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotationExtraction"
+        "400":
+          description: The upload cannot be extracted
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+  /analyses/{id}/intelligence:
+    get:
+      operationId: getQuoteIntelligence
+      tags: [intelligence]
+      summary: Get the saved quotation intelligence result
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Intelligence status and findings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteIntelligence"
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+    post:
+      operationId: analyzeQuoteIntelligence
+      tags: [intelligence]
+      summary: Analyze a completed quotation extraction
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Existing or newly completed intelligence result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteIntelligence"
+        "400":
+          description: Quotation extraction is not ready
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+  /analyses/{id}/vendor-message:
+    post:
+      operationId: generateVendorMessage
+      tags: [intelligence]
+      summary: Generate a ready-to-send vendor clarification message
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorMessageInput"
+      responses:
+        "200":
+          description: Generated vendor message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorMessage"
+        "400":
+          description: Invalid finding reference
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis or finding not found
+        "409":
+          description: Quote intelligence is not ready
+        "502":
+          description: Message generation failed
+  /analyses/{id}/bulk-vendor-message:
+    post:
+      operationId: generateBulkVendorMessage
+      tags: [intelligence]
+      summary: Generate one ready-to-send message for all low-priority findings
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkVendorMessageInput"
+      responses:
+        "200":
+          description: Generated bulk vendor message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkVendorMessage"
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis or low-priority findings not found
+        "409":
+          description: Quote intelligence is not ready
+        "502":
+          description: Message generation failed
+  /analyses/{id}/evidence:
+    get:
+      operationId: listAnalysisEvidence
+      tags: [evidence]
+      summary: List source support for an owned analysis
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Source support for the analysis
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EvidenceRecord"
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+  /analyses/{id}/vendors:
+    get:
+      operationId: listAnalysisVendors
+      tags: [vendor-intelligence]
+      summary: List vendors researched for an owned analysis
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Vendors linked to the analysis through evidence
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnalysisVendor"
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+    post:
+      operationId: researchAnalysisVendor
+      tags: [vendor-intelligence]
+      summary: Research a vendor for an owned analysis
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisVendorResearchInput"
+      responses:
+        "201":
+          description: Vendor research record linked to the analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisVendor"
+        "400":
+          description: Invalid vendor research input
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis not found
+  /evidence:
+    post:
+      operationId: createEvidenceRecord
+      tags: [evidence]
+      summary: Create a structured evidence record for an owned context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvidenceRecordInput"
+      responses:
+        "201":
+          description: Evidence record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceRecord"
+        "400":
+          description: Invalid evidence record
+        "401":
+          description: Authentication required
+        "404":
+          description: Analysis or vendor context not found
+  /quotes:
+    get:
+      operationId: listQuotes
+      tags: [quotes]
+      summary: List quotes
+      responses:
+        "200":
+          description: Quote list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quote"
+  /vendors:
+    get:
+      operationId: listVendors
+      tags: [vendors]
+      summary: List vendors
+      responses:
+        "200":
+          description: Vendor list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+  /vendor-check/reviews:
+    get:
+      operationId: getVendorReviewCheck
+      tags: [vendor-check]
+      summary: Summarize the five most recent Google reviews for a vendor
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - name: city
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: Review check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorReviewCheck"
+        "400":
+          description: Invalid vendor name or city
+        "401":
+          description: Authentication required
+        "404":
+          description: Vendor not found on Google Maps
+        "502":
+          description: Google Places or review classification failed
+  /vendor-check/public-search:
+    get:
+      operationId: getVendorPublicSearchCheck
+      tags: [vendor-check]
+      summary: Search and classify public complaint-related results for a vendor
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: Public search check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorPublicSearchCheck"
+        "400":
+          description: Invalid vendor name
+        "401":
+          description: Authentication required
+        "503":
+          description: Public search is not configured
+        "502":
+          description: Search or classification failed
+  /insights:
+    get:
+      operationId: listInsights
+      tags: [insights]
+      summary: List insights
+      responses:
+        "200":
+          description: Insight list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Insight"
+  /account:
+    get:
+      operationId: getAccount
+      tags: [account]
+      summary: Get account
+      responses:
+        "200":
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a private upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: A short-lived URL for direct private upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [storage]
+      summary: Retrieve a private uploaded object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      tags: [storage]
+      summary: Get the current upload session user
+      responses:
+        "200":
+          description: Current authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserEnvelope"
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Dashboard:
+      type: object
+      required: [activeAnalyses, reportsReady, quotesReceived, potentialSavings, recentAnalyses]
+      properties:
+        activeAnalyses: { type: number }
+        reportsReady: { type: number }
+        quotesReceived: { type: number }
+        potentialSavings: { type: number }
+        recentAnalyses:
+          type: array
+          items: { $ref: "#/components/schemas/Analysis" }
+    Analysis:
+      type: object
+      required: [id, name, room, status, createdAt, progress, sourceAnalysisId, replacementAnalysisId]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        room: { type: string }
+        status: { type: string }
+        createdAt: { type: string }
+        progress: { type: number }
+        address: { type: ["string", "null"] }
+        fileName: { type: ["string", "null"] }
+        sourceAnalysisId: { type: ["string", "null"] }
+        replacementAnalysisId: { type: ["string", "null"] }
+    AnalysisInput:
+      type: object
+      required: [name, room]
+      properties:
+        name: { type: string, minLength: 1 }
+        room: { type: string, minLength: 1 }
+        address: { type: string }
+        fileName: { type: string, minLength: 1 }
+        filePath: { type: string, minLength: 1 }
+        fileType: { type: string, minLength: 1 }
+        fileSize: { type: number, minimum: 1 }
+        sourceAnalysisId: { type: string, minLength: 1 }
+    QuotationExtraction:
+      type: object
+      required: [analysisId, status, result, error]
+      properties:
+        analysisId: { type: string }
+        status:
+          type: string
+          enum: [pending, processing, complete, failed]
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/QuotationExtractionResult"
+            - type: "null"
+        error: { type: ["string", "null"] }
+        model: { type: ["string", "null"] }
+    QuoteFinding:
+      type: object
+      required: [category, severity, title, description, evidence, recommendation]
+      properties:
+        category:
+          type: string
+          enum: [missing_item, hidden_cost, material_ambiguity, brand_ambiguity, hardware_ambiguity, quantity_anomaly, price_anomaly, labour_ambiguity, timeline_concern, warranty_gap, payment_risk, tax_ambiguity, contract_risk, exclusions, lump_sum, vague_spec, missing_grade, math_error, duplicate, timeline_risk, hidden_exclusion, other]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        title: { type: string }
+        description: { type: string }
+        evidence: { type: string }
+        recommendation: { type: string }
+    VendorMessageInput:
+      type: object
+      additionalProperties: false
+      required: [findingCategory, findingTitle]
+      properties:
+        findingCategory: { type: string, minLength: 1, maxLength: 100 }
+        findingTitle: { type: string, minLength: 1, maxLength: 500 }
+    VendorMessage:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 1000 }
+    BulkVendorMessage:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 5000 }
+    BulkVendorMessageInput:
+      type: object
+      additionalProperties: false
+      required: [priority]
+      properties:
+        priority: { type: string, enum: [LOW, HIGH] }
+    QuoteVerdict:
+      type: object
+      required: [status, label, summary, highCount, mediumCount, lowCount]
+      properties:
+        status: { type: string, enum: [GREEN, YELLOW, RED] }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        highCount: { type: number, multipleOf: 1, minimum: 0 }
+        mediumCount: { type: number, multipleOf: 1, minimum: 0 }
+        lowCount: { type: number, multipleOf: 1, minimum: 0 }
+    VendorReviewIssue:
+      type: object
+      required: [theme, count]
+      properties:
+        theme: { type: string, minLength: 1, maxLength: 160 }
+        count: { type: number, multipleOf: 1, minimum: 1, maximum: 5 }
+    VendorNegativeReview:
+      type: object
+      required: [date, quote]
+      properties:
+        date: { type: string, minLength: 1, maxLength: 80 }
+        quote: { type: string, minLength: 1, maxLength: 300 }
+    VendorReviewCheck:
+      type: object
+      required: [themesLiked, themesDisliked, mostRecentNegative, status, statusLabel, oneLineConclusion, reviewsAnalysed, sourceUrl]
+      properties:
+        themesLiked:
+          type: array
+          maxItems: 3
+          items: { type: string, minLength: 1, maxLength: 160 }
+        themesDisliked:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/VendorReviewIssue" }
+        mostRecentNegative:
+          oneOf:
+            - $ref: "#/components/schemas/VendorNegativeReview"
+            - type: "null"
+        status: { type: string, enum: [green, yellow, red] }
+        statusLabel: { type: string, minLength: 1, maxLength: 120 }
+        oneLineConclusion: { type: string, minLength: 1, maxLength: 240 }
+        reviewsAnalysed: { type: number, multipleOf: 1, minimum: 0, maximum: 5 }
+        sourceUrl: { type: string, minLength: 1 }
+    VendorPublicSearchResult:
+      type: object
+      required: [title, url, sourceDomain, date, summary, category]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 500 }
+        url: { type: string, minLength: 1 }
+        sourceDomain: { type: string, minLength: 1, maxLength: 255 }
+        date: { type: ["string", "null"], maxLength: 80 }
+        summary: { type: string, minLength: 1, maxLength: 300 }
+        category: { type: string, enum: [complaint, neutral, promotional] }
+    VendorPublicSearchCheck:
+      type: object
+      required: [searchQuery, results, status, statusLabel, oneLineConclusion, sourcesChecked]
+      properties:
+        searchQuery: { type: string, minLength: 1, maxLength: 600 }
+        results:
+          type: array
+          maxItems: 15
+          items: { $ref: "#/components/schemas/VendorPublicSearchResult" }
+        status: { type: string, enum: [green, yellow, red] }
+        statusLabel: { type: string, minLength: 1, maxLength: 120 }
+        oneLineConclusion: { type: string, minLength: 1, maxLength: 300 }
+        sourcesChecked:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 255 }
+    QuoteIntelligence:
+      type: object
+      required: [analysisId, status, findings, documentationCompletenessScore, verdict, error]
+      properties:
+        analysisId: { type: string }
+        status:
+          type: string
+          enum: [pending, processing, complete, failed]
+        findings:
+          oneOf:
+            - type: array
+              items: { $ref: "#/components/schemas/QuoteFinding" }
+            - type: "null"
+        documentationCompletenessScore:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 100
+        verdict:
+          oneOf:
+            - $ref: "#/components/schemas/QuoteVerdict"
+            - type: "null"
+        error: { type: ["string", "null"] }
+        model: { type: ["string", "null"] }
+    ExtractionField:
+      type: object
+      required: [value, confidence, evidence]
+      properties:
+        value: { type: ["string", "null"] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence: { type: ["string", "null"] }
+    ExtractedLineItem:
+      type: object
+      required: [description, quantity, unit, amount, material, brand, hardware, confidence, evidence]
+      properties:
+        description: { $ref: "#/components/schemas/ExtractionField" }
+        quantity: { $ref: "#/components/schemas/ExtractionField" }
+        unit: { $ref: "#/components/schemas/ExtractionField" }
+        amount: { $ref: "#/components/schemas/ExtractionField" }
+        material: { $ref: "#/components/schemas/ExtractionField" }
+        brand: { $ref: "#/components/schemas/ExtractionField" }
+        hardware: { $ref: "#/components/schemas/ExtractionField" }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence: { type: ["string", "null"] }
+    QuotationExtractionResult:
+      type: object
+      required:
+        [documentReadable, vendorName, legalName, gstin, cinOrLlpin, phone, email, website,
+         address, city, state, pincode, quotationNumber, quotationDate, projectType,
+         projectLocation, subtotalBeforeGst, gstRate, gstAmount, grandTotalInclusiveGst,
+         totalQuotationValue, rooms, lineItems, materials, brands, hardware, warranty, timeline,
+         paymentTerms]
+      properties:
+        documentReadable: { type: boolean, enum: [true] }
+        vendorName: { $ref: "#/components/schemas/ExtractionField" }
+        legalName: { $ref: "#/components/schemas/ExtractionField" }
+        gstin: { $ref: "#/components/schemas/ExtractionField" }
+        cinOrLlpin: { $ref: "#/components/schemas/ExtractionField" }
+        phone: { $ref: "#/components/schemas/ExtractionField" }
+        email: { $ref: "#/components/schemas/ExtractionField" }
+        website: { $ref: "#/components/schemas/ExtractionField" }
+        address: { $ref: "#/components/schemas/ExtractionField" }
+        city: { $ref: "#/components/schemas/ExtractionField" }
+        state: { $ref: "#/components/schemas/ExtractionField" }
+        pincode: { $ref: "#/components/schemas/ExtractionField" }
+        quotationNumber: { $ref: "#/components/schemas/ExtractionField" }
+        quotationDate: { $ref: "#/components/schemas/ExtractionField" }
+        projectType: { $ref: "#/components/schemas/ExtractionField" }
+        projectLocation: { $ref: "#/components/schemas/ExtractionField" }
+        subtotalBeforeGst: { $ref: "#/components/schemas/ExtractionField" }
+        gstRate: { $ref: "#/components/schemas/ExtractionField" }
+        gstAmount: { $ref: "#/components/schemas/ExtractionField" }
+        grandTotalInclusiveGst: { $ref: "#/components/schemas/ExtractionField" }
+        totalQuotationValue: { $ref: "#/components/schemas/ExtractionField" }
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/ExtractionField" }
+        lineItems:
+          type: array
+          items: { $ref: "#/components/schemas/ExtractedLineItem" }
+        materials:
+          type: array
+          items: { $ref: "#/components/schemas/ExtractionField" }
+        brands:
+          type: array
+          items: { $ref: "#/components/schemas/ExtractionField" }
+        hardware:
+          type: array
+          items: { $ref: "#/components/schemas/ExtractionField" }
+        warranty: { $ref: "#/components/schemas/ExtractionField" }
+        timeline: { $ref: "#/components/schemas/ExtractionField" }
+        paymentTerms: { $ref: "#/components/schemas/ExtractionField" }
+    Quote:
+      type: object
+      required: [id, analysisId, vendorName, category, amount, status, evidence]
+      properties:
+        id: { type: string }
+        analysisId: { type: string }
+        vendorName: { type: string }
+        category: { type: string }
+        amount: { type: number }
+        status: { type: string }
+        note: { type: string }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+    Vendor:
+      type: object
+      required: [id, name, specialty, location, rating, verified, evidence]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        specialty: { type: string }
+        location: { type: string }
+        rating: { type: number }
+        verified: { type: boolean }
+        responseTime: { type: string }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+    AnalysisVendorResearchInput:
+      type: object
+      required: [vendorName]
+      properties:
+        vendorName: { type: string, minLength: 1 }
+        category: { type: ["string", "null"] }
+        legalName: { type: ["string", "null"] }
+        gstin: { type: ["string", "null"] }
+        cin: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        state: { type: ["string", "null"] }
+    AnalysisVendor:
+      type: object
+      required: [id, name, specialty, location, evidence]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        specialty: { type: string }
+        location: { type: string }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+    VendorIntelligenceInput:
+      type: object
+      required: [vendorName]
+      properties:
+        vendorName: { type: string, minLength: 1 }
+        legalName: { type: ["string", "null"] }
+        gstin: { type: ["string", "null"] }
+        cin: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        state: { type: ["string", "null"] }
+    VendorIntelligence:
+      type: object
+      required: [id, identity, normalized, informationalMatchConfidence, evidence, transparency, checklist, notPubliclyVerifiable, sourceQuery, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        identity:
+          $ref: "#/components/schemas/VendorIdentity"
+        normalized:
+          $ref: "#/components/schemas/NormalizedVendorIdentity"
+        informationalMatchConfidence: { type: number, minimum: 0, maximum: 100 }
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvidenceRecord"
+        transparency:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorTransparencyItem"
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorChecklistItem"
+        notPubliclyVerifiable:
+          type: array
+          items: { type: string }
+        sourceQuery: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    VendorIdentity:
+      type: object
+      required: [vendorName, legalName, gstin, cin, phone, website, address, city, state]
+      properties:
+        vendorName: { type: string }
+        legalName: { type: ["string", "null"] }
+        gstin: { type: ["string", "null"] }
+        cin: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        state: { type: ["string", "null"] }
+    NormalizedVendorIdentity:
+      type: object
+      required: [identityKey, vendorName, legalName, gstin, cin, phone, website, address, city, state]
+      properties:
+        identityKey: { type: string }
+        vendorName: { type: string }
+        legalName: { type: ["string", "null"] }
+        gstin: { type: ["string", "null"] }
+        cin: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        state: { type: ["string", "null"] }
+    EvidenceVerificationStatus:
+      type: string
+      enum: [VERIFIED, CROSS_VERIFIED, PUBLICLY_FOUND, PARTIALLY_VERIFIED, UNVERIFIED, CONFLICT, NOT_AVAILABLE, USER_VERIFICATION_REQUIRED]
+    EvidenceRecord:
+      type: object
+      required: [id, claim, value, source, sourceType, sourceUrl, retrievedAt, confidence, verificationStatus, analysisId, vendorId]
+      properties:
+        id: { type: string }
+        claim: { type: string }
+        value: { type: string }
+        source: { type: string }
+        sourceType: { type: string }
+        sourceUrl: { type: ["string", "null"] }
+        retrievedAt: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        verificationStatus:
+          $ref: "#/components/schemas/EvidenceVerificationStatus"
+        analysisId: { type: ["string", "null"] }
+        vendorId: { type: ["string", "null"] }
+        status: { type: string }
+        query: { type: ["string", "null"] }
+        externalId: { type: ["string", "null"] }
+        error: { type: ["string", "null"] }
+    EvidenceRecordInput:
+      type: object
+      required: [claim, value, source, sourceType, confidence, verificationStatus]
+      properties:
+        claim: { type: string, minLength: 1 }
+        value: { type: string, minLength: 1 }
+        source: { type: string, minLength: 1 }
+        sourceType: { type: string, minLength: 1 }
+        sourceUrl: { type: ["string", "null"] }
+        retrievedAt: { type: ["string", "null"], format: date-time }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        verificationStatus:
+          $ref: "#/components/schemas/EvidenceVerificationStatus"
+        analysisId: { type: ["string", "null"] }
+        vendorId: { type: ["string", "null"] }
+    VendorTransparencyItem:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: string }
+    VendorChecklistItem:
+      type: object
+      required: [label, status]
+      properties:
+        label: { type: string }
+        status: { type: string, enum: [not_checked] }
+    Insight:
+      type: object
+      required: [id, title, category, severity, detail, evidence, evidenceRecords]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        category: { type: string }
+        severity: { type: string }
+        detail: { type: string }
+        evidence: { type: string }
+        evidenceRecords:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRecord" }
+        estimate: { type: ["number", "null"] }
+    Account:
+      type: object
+      required: [id, name, email, plan]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        plan: { type: string }
+        analysesUsed: { type: number }
+        analysesLimit: { type: number }
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: number, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath, metadata]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    AuthUser:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+        email: { type: ["string", "null"] }
+        firstName: { type: ["string", "null"] }
+        lastName: { type: ["string", "null"] }
+        profileImageUrl: { type: ["string", "null"] }
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+
