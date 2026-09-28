@@ -257,7 +257,15 @@ router.get('/login', async (req: Request, res: Response) => {
 // Query params are not validated because the OIDC provider may include
 // parameters not expressed in the schema.
 router.get('/callback', async (req: Request, res: Response) => {
+  if (!process.env.REPL_ID) {
+    res.redirect('/');
+    return;
+  }
   const config = await getOidcConfig();
+  if (!config) {
+    res.redirect('/');
+    return;
+  }
   const callbackUrl = `${getOrigin(req)}/api/callback`;
 
   const codeVerifier = req.cookies?.code_verifier;
@@ -334,6 +342,10 @@ router.get('/logout', async (req: Request, res: Response) => {
   }
 
   const config = await getOidcConfig();
+  if (!config) {
+    res.redirect(returnTo || '/');
+    return;
+  }
   const postLogoutRedirectUrl = new URL(returnTo, `${origin}/`).href;
 
   const endSessionUrl = oidc.buildEndSessionUrl(config, {

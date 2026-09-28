@@ -18,11 +18,14 @@ export interface SessionData {
 
 let oidcConfig: client.Configuration | null = null;
 
-export async function getOidcConfig(): Promise<client.Configuration> {
+export async function getOidcConfig(): Promise<client.Configuration | null> {
+  if (!process.env.REPL_ID) {
+    return null;
+  }
   if (!oidcConfig) {
     oidcConfig = await client.discovery(
       new URL(ISSUER_URL),
-      process.env.REPL_ID!,
+      process.env.REPL_ID,
     );
   }
   return oidcConfig;
