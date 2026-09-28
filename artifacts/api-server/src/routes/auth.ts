@@ -92,10 +92,15 @@ router.get('/auth/user', (req: Request, res: Response) => {
 });
 
 router.get('/login', async (req: Request, res: Response) => {
+  const returnTo = getSafeReturnTo(req.query.returnTo);
+  if (!process.env.REPL_ID) {
+    // Running in standalone / Hostinger environment: redirect to target directly
+    res.redirect(returnTo || '/dashboard');
+    return;
+  }
+
   const config = await getOidcConfig();
   const callbackUrl = `${getOrigin(req)}/api/callback`;
-
-  const returnTo = getSafeReturnTo(req.query.returnTo);
 
   const state = oidc.randomState();
   const nonce = oidc.randomNonce();
@@ -187,16 +192,23 @@ router.get('/callback', async (req: Request, res: Response) => {
 });
 
 router.get('/logout', async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
   const origin = getOrigin(req);
   const returnTo = getSafeReturnTo(req.query.returnTo);
+  const sid = getSessionId(req);
+  if (sid) {
+    await clearSession(res, sid);
+  }
+
+  if (!process.env.REPL_ID) {
+    res.redirect(returnTo || '/');
+    return;
+  }
+
+  const config = await getOidcConfig();
   const postLogoutRedirectUrl = new URL(returnTo, `${origin}/`).href;
 
-  const sid = getSessionId(req);
-  await clearSession(res, sid);
-
   const endSessionUrl = oidc.buildEndSessionUrl(config, {
-    client_id: process.env.REPL_ID!,
+    client_id: process.env.REPL_ID,
     post_logout_redirect_uri: postLogoutRedirectUrl,
   });
 

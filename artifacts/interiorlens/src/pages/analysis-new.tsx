@@ -87,12 +87,6 @@ export default function NewAnalysisPage() {
     selectFile(event.dataTransfer.files[0]);
   };
 
-  const beginLogin = () => {
-    const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const returnTo = `${basePath}/analysis/new${search}` || `/analysis/new${search}`;
-    window.location.assign(`/api/login?returnTo=${encodeURIComponent(returnTo)}`);
-  };
-
   const submitQuotation = async () => {
     if (!file) {
       setError("Choose a quotation before starting your review.");
