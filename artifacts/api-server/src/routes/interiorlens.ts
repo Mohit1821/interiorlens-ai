@@ -28,8 +28,11 @@ import {
 import {
   analysesTable,
   db,
+  evidenceRecordsTable,
+  pool,
   quotationExtractionsTable,
   quoteIntelligenceRunsTable,
+  quotesTable,
   uploadIntentsTable,
   vendorIdentitiesTable,
 } from "@workspace/db";
@@ -338,8 +341,65 @@ async function ensureMockAnalyses(): Promise<void> {
     .onConflictDoNothing();
 }
 
+async function purgeOldAnalysesForUser(ownerId: string, keepCount: number = 3): Promise<void> {
+  try {
+    if (!ownerId) return;
+
+    // Get all user-owned analyses ordered newest first
+    const userAnalyses = await db
+      .select({
+        id: analysesTable.id,
+        uploadedFilePath: analysesTable.uploadedFilePath,
+      })
+      .from(analysesTable)
+      .where(eq(analysesTable.ownerId, ownerId))
+      .orderBy(desc(analysesTable.createdAt));
+
+    if (userAnalyses.length <= keepCount) {
+      return;
+    }
+
+    const analysesToPurge = userAnalyses.slice(keepCount);
+    for (const item of analysesToPurge) {
+      const analysisId = item.id;
+
+      // Unlink any replacement pointers
+      await db
+        .update(analysesTable)
+        .set({ sourceAnalysisId: null })
+        .where(eq(analysesTable.sourceAnalysisId, analysisId))
+        .catch(() => undefined);
+
+      // Delete child records
+      await db.delete(quotesTable).where(eq(quotesTable.analysisId, analysisId)).catch(() => undefined);
+      await db.delete(evidenceRecordsTable).where(eq(evidenceRecordsTable.analysisId, analysisId)).catch(() => undefined);
+      await db.delete(quoteIntelligenceRunsTable).where(eq(quoteIntelligenceRunsTable.analysisId, analysisId)).catch(() => undefined);
+      await db.delete(quotationExtractionsTable).where(eq(quotationExtractionsTable.analysisId, analysisId)).catch(() => undefined);
+
+      // Delete binary file data from Supabase uploaded_files table to free space
+      if (item.uploadedFilePath) {
+        const fileId = item.uploadedFilePath
+          .replace(/^\/objects\/uploads\//, '')
+          .replace(/^\/objects\//, '')
+          .trim();
+        if (fileId) {
+          await pool.query('DELETE FROM uploaded_files WHERE id = $1', [fileId]).catch(() => undefined);
+        }
+      }
+
+      // Delete analysis record
+      await db.delete(analysesTable).where(eq(analysesTable.id, analysisId)).catch(() => undefined);
+    }
+  } catch (err) {
+    console.error('Failed to purge old analyses for user:', err);
+  }
+}
+
 router.get("/dashboard", async (req, res): Promise<void> => {
   await ensureMockAnalyses();
+  if (req.user?.id) {
+    await purgeOldAnalysesForUser(req.user.id, 3);
+  }
   const analyses = await db
     .select()
     .from(analysesTable)
@@ -364,6 +424,7 @@ router.get("/analyses", async (req, res): Promise<void> => {
     return;
   }
   await ensureMockAnalyses();
+  await purgeOldAnalysesForUser(req.user.id, 3);
   const analyses = await db
     .select()
     .from(analysesTable)
@@ -498,6 +559,9 @@ router.post("/analyses", async (req, res): Promise<void> => {
       .update(uploadIntentsTable)
       .set({ status: "consumed", consumedAt: new Date() })
       .where(eq(uploadIntentsTable.id, claimedIntent.id));
+
+    // Auto-delete older quotation records and binary files beyond 3 to stay within free database storage limits
+    await purgeOldAnalysesForUser(req.user.id, 3);
 
     res.status(201).json(CreateAnalysisResponse.parse(toAnalysis(analysis)));
     req.log.info({ analysisId: analysis.id }, "Created analysis from secure upload");
@@ -1226,7 +1290,7 @@ router.get("/account", async (req, res): Promise<void> => {
       email: email,
       plan: "Free Beta",
       analysesUsed: userAnalyses.length,
-      analysesLimit: 999,
+      analysesLimit: 3,
     }),
   );
   req.log.info({ userId: req.user.id }, "Returned account details");

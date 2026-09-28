@@ -35,8 +35,8 @@ export default function QuotesPage() {
           <h1 className="text-3xl font-serif mb-2">Quote Repository</h1>
           <p className="text-muted-foreground text-sm">
             {user?.email
-              ? `Logged in as ${user.email}. Compare and track your vendor quotes across all analyses.`
-              : "Compare and track vendor quotes across all your analyses."}
+              ? `Logged in as ${user.email}. Displaying your latest 3 active quotations (older quotes are auto-cleaned).`
+              : "Compare and track your latest 3 vendor quotations (older quotes are auto-cleaned)."}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">

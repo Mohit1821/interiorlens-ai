@@ -70,16 +70,19 @@ export default function AccountPage() {
               <CardTitle className="text-base">Current Tier</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="text-2xl font-serif mb-1 capitalize text-primary">100% Free Public Beta</div>
-              <p className="text-sm text-muted-foreground mb-6">Unlimited quotation analyses</p>
+              <div className="text-2xl font-serif mb-1 capitalize text-primary">100% Free Access</div>
+              <p className="text-sm text-muted-foreground mb-6">Latest 3 quotation audits saved automatically</p>
               
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-sm">
                   <span>Quotes saved</span>
-                  <span className="font-mono">{account?.analysesUsed ?? 0}</span>
+                  <span className="font-mono">{account?.analysesUsed ?? 0} / 3</span>
                 </div>
                 <div className="h-2 w-full bg-accent rounded-none">
-                  <div className="h-full bg-primary" style={{ width: "100%" }} />
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${Math.min(((account?.analysesUsed ?? 0) / 3) * 100, 100)}%` }}
+                  />
                 </div>
               </div>
 
