@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { matchingGooglePlaces } from "./vendorPlaceMatching";
 
-const MODEL = process.env.ANTHROPIC_VENDOR_MODEL || "claude-3-5-haiku-20241022";
+const MODEL = process.env.ANTHROPIC_VENDOR_MODEL || "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 8_192;
 const DEFAULT_SOURCES = [
   "consumercomplaints.in",
@@ -12,7 +12,9 @@ const DEFAULT_SOURCES = [
   "general web",
 ];
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 export class VendorCheckError extends Error {
   constructor(

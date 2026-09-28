@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import Anthropic from "@anthropic-ai/sdk";
 
-const EXTRACTION_MODEL = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
+const EXTRACTION_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
 const MAX_EXTRACTION_TOKENS = 16_384;
 const EXTRACTION_TIMEOUT_MS = 90_000;
 const MAX_PDF_PAGES = 20;
