@@ -1207,18 +1207,29 @@ router.get("/insights", (req, res): void => {
   req.log.info({ count: mockInsights.length }, "Listed insights");
 });
 
-router.get("/account", (req, res): void => {
+router.get("/account", async (req, res): Promise<void> => {
+  const isGuest = !req.user?.email;
+  const displayName =
+    [req.user?.firstName, req.user?.lastName].filter(Boolean).join(" ") ||
+    (isGuest ? "Guest User" : "Member");
+  const email = req.user?.email || "guest@interiorlens.ai";
+
+  const userAnalyses = await db
+    .select({ id: analysesTable.id })
+    .from(analysesTable)
+    .where(eq(analysesTable.ownerId, req.user.id));
+
   res.json(
     GetAccountResponse.parse({
-      id: "acct-01",
-      name: "Avery Morgan",
-      email: "avery@example.com",
-      plan: "Studio",
-      analysesUsed: 3,
-      analysesLimit: 10,
+      id: req.user.id,
+      name: displayName,
+      email: email,
+      plan: "Free Beta",
+      analysesUsed: userAnalyses.length,
+      analysesLimit: 999,
     }),
   );
-  req.log.info("Returned account");
+  req.log.info({ userId: req.user.id }, "Returned account details");
 });
 
 export default router;

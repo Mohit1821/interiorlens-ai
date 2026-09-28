@@ -4,8 +4,9 @@ import { AppLayout } from "@/components/layout/app-layout"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search } from "lucide-react"
+import { Search, Plus, Sparkles } from "lucide-react"
 import { useListAnalyses } from "@workspace/api-client-react"
+import { useAuth } from "@/context/auth-context"
 import {
   Table,
   TableBody,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/table"
 
 export default function QuotesPage() {
+  const { user } = useAuth()
   const { data: analyses, isLoading } = useListAnalyses()
   const [query, setQuery] = React.useState("")
   const analysisHref = (id: string, status: string) =>
@@ -28,21 +30,48 @@ export default function QuotesPage() {
   
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-serif mb-2">Quote Repository</h1>
-          <p className="text-muted-foreground text-sm">Compare and track vendor quotes across all your analyses.</p>
+          <p className="text-muted-foreground text-sm">
+            {user?.email
+              ? `Logged in as ${user.email}. Compare and track your vendor quotes across all analyses.`
+              : "Compare and track vendor quotes across all your analyses."}
+          </p>
         </div>
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search quotes..."
-            className="pl-9"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search quotes..."
+              className="pl-9"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <Button asChild size="sm" className="shrink-0 text-xs">
+            <Link href="/analysis/new">
+              <Plus className="h-3.5 w-3.5 mr-1" /> New Quote
+            </Link>
+          </Button>
         </div>
       </div>
+
+      {!user?.email && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+          <div>
+            <div className="flex items-center gap-1.5 font-semibold text-xs text-primary mb-1 font-mono uppercase tracking-wider">
+              <Sparkles className="h-3.5 w-3.5" /> Save your quote history
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sign in or create a free account to permanently store and access all your quotation audits from any phone or computer.
+            </p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="shrink-0 text-xs bg-white">
+            <Link href="/login?returnTo=/quotes">Sign In / Register</Link>
+          </Button>
+        </div>
+      )}
 
       <Card>
         <Table>

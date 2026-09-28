@@ -1,10 +1,12 @@
 import * as React from "react"
 import { Link, useLocation } from "wouter"
 import { cn } from "@/lib/utils"
-import { BarChart, FolderOpen, Home, Settings, Search, FileText, Lightbulb, Shield } from "lucide-react"
+import { BarChart, FolderOpen, Home, Settings, Search, FileText, Lightbulb, Shield, LogOut, LogIn } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
+  const { user, logout } = useAuth()
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -41,9 +43,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-4 border-t border-border shrink-0 hidden md:block">
-          <div className="bg-white border border-border p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Workspace</p>
-            <p className="text-sm font-semibold truncate">Personal Account</p>
+          <div className="bg-white border border-border p-3.5 rounded-lg shadow-sm">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">Workspace</p>
+            <p className="text-xs font-semibold truncate text-foreground">
+              {user && user.email ? (user.firstName || user.email) : "Guest Session"}
+            </p>
+            {user && user.email ? (
+              <button
+                onClick={() => logout()}
+                className="mt-2 text-[11px] text-muted-foreground hover:text-destructive flex items-center gap-1.5 transition-colors"
+              >
+                <LogOut className="h-3 w-3" /> Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="mt-2 text-[11px] text-primary hover:underline flex items-center gap-1.5 font-medium"
+              >
+                <LogIn className="h-3 w-3" /> Sign In / Register &rarr;
+              </Link>
+            )}
           </div>
         </div>
       </aside>

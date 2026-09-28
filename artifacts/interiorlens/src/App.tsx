@@ -20,11 +20,13 @@ import QuotesPage from '@/pages/quotes';
 import VendorsPage from '@/pages/vendors';
 import InsightsPage from '@/pages/insights';
 import AccountPage from '@/pages/account';
+import LoginPage from '@/pages/login';
 import NewAnalysisPage from '@/pages/analysis-new';
 import AnalysisProcessingPage from '@/pages/analysis-processing';
 import AnalysisReportPage from '@/pages/analysis-report';
 import AnalysisQuotePage from '@/pages/analysis-quote';
 import AnalysisCompletePage from '@/pages/analysis-complete';
+import { AuthProvider } from '@/context/auth-context';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,7 @@ function Router() {
         <Route path="/vendors" component={VendorsPage} />
         <Route path="/insights" component={InsightsPage} />
         <Route path="/account" component={AccountPage} />
+        <Route path="/login" component={LoginPage} />
         
         <Route path="/analysis/new" component={NewAnalysisPage} />
         <Route path="/analysis/:id/processing" component={AnalysisProcessingPage} />
@@ -68,12 +71,14 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

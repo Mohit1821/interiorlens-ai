@@ -2,6 +2,8 @@ import {
   GetCurrentAuthUserResponse,
 } from '@workspace/api-zod';
 import { db, usersTable } from '@workspace/db';
+import { eq } from 'drizzle-orm';
+import crypto from 'node:crypto';
 import { Router, type IRouter, type Request, type Response } from 'express';
 import * as oidc from 'openid-client';
 
@@ -83,12 +85,139 @@ async function upsertUser(claims: Record<string, unknown>) {
   return user;
 }
 
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  try {
+    const [salt, originalHash] = storedHash.split(':');
+    if (!salt || !originalHash) return false;
+    const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
+  } catch {
+    return false;
+  }
+}
+
 router.get('/auth/user', (req: Request, res: Response) => {
-  res.json(
-    GetCurrentAuthUserResponse.parse({
-      user: req.isAuthenticated() ? req.user : null,
-    }),
-  );
+  const user = req.user && req.user.email ? req.user : null;
+  res.json({ user });
+});
+
+router.post('/auth/register', async (req: Request, res: Response) => {
+  try {
+    const { email, password, name, firstName, lastName, phone } = req.body ?? {};
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      res.status(400).json({ error: 'Valid email address is required.' });
+      return;
+    }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      res.status(400).json({ error: 'Password must be at least 6 characters.' });
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const [existing] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, normalizedEmail));
+
+    if (existing) {
+      res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
+      return;
+    }
+
+    const computedFirstName = firstName || (name ? name.split(' ')[0] : 'Member');
+    const computedLastName = lastName || (name && name.includes(' ') ? name.split(' ').slice(1).join(' ') : '');
+    const passwordHash = hashPassword(password);
+    const userId = `usr_${crypto.randomUUID()}`;
+
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        id: userId,
+        email: normalizedEmail,
+        passwordHash,
+        phone: phone ? String(phone).trim() : null,
+        firstName: computedFirstName,
+        lastName: computedLastName,
+      })
+      .returning();
+
+    const authUser = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+    };
+
+    const sessionData: SessionData = {
+      user: authUser,
+      access_token: 'local_pwd',
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+
+    res.status(201).json({ user: authUser });
+  } catch (error) {
+    req.log?.error({ err: error }, 'Registration error');
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
+  }
+});
+
+router.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body ?? {};
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required.' });
+      return;
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, normalizedEmail));
+
+    if (!user || !user.passwordHash || !verifyPassword(String(password), user.passwordHash)) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const authUser = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+    };
+
+    const sessionData: SessionData = {
+      user: authUser,
+      access_token: 'local_pwd',
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+
+    res.json({ user: authUser });
+  } catch (error) {
+    req.log?.error({ err: error }, 'Login error');
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
+router.post('/auth/logout', async (req: Request, res: Response) => {
+  const sid = getSessionId(req);
+  if (sid) {
+    await clearSession(res, sid);
+  }
+  res.json({ success: true });
 });
 
 router.get('/login', async (req: Request, res: Response) => {
