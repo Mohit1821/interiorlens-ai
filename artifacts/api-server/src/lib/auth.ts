@@ -19,14 +19,18 @@ export interface SessionData {
 let oidcConfig: client.Configuration | null = null;
 
 export async function getOidcConfig(): Promise<client.Configuration | null> {
-  if (!process.env.REPL_ID) {
+  if (!process.env.REPL_ID || typeof process.env.REPL_ID !== 'string' || !process.env.REPL_ID.trim()) {
     return null;
   }
   if (!oidcConfig) {
-    oidcConfig = await client.discovery(
-      new URL(ISSUER_URL),
-      process.env.REPL_ID,
-    );
+    try {
+      oidcConfig = await client.discovery(
+        new URL(ISSUER_URL),
+        process.env.REPL_ID.trim(),
+      );
+    } catch {
+      return null;
+    }
   }
   return oidcConfig;
 }
