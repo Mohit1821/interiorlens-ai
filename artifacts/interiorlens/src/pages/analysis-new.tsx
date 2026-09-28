@@ -173,9 +173,9 @@ export default function NewAnalysisPage() {
             InteriorLens <span className="text-primary">AI</span>
           </a>
           <nav className="hidden items-center gap-8 text-sm text-[#5d5b57] sm:flex">
-            <a href="/dashboard" className="hover:text-foreground">Studio</a>
-            <a href="/quotes" className="hover:text-foreground">Assets</a>
-            <span className="border-b-2 border-primary pb-1 font-medium text-primary">Quote Analysis</span>
+            <a href="/dashboard" className="hover:text-foreground">Dashboard</a>
+            <a href="/quotes" className="hover:text-foreground">Quotes</a>
+            <span className="border-b-2 border-primary pb-1 font-medium text-primary">Upload Quote</span>
           </nav>
           {user && user.email ? (
             <div className="flex items-center gap-3">

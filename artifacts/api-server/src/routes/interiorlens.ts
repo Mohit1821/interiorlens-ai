@@ -397,26 +397,33 @@ async function purgeOldAnalysesForUser(ownerId: string, keepCount: number = 3): 
 }
 
 router.get("/dashboard", async (req, res): Promise<void> => {
-  await ensureMockAnalyses();
-  if (req.user?.id) {
-    await purgeOldAnalysesForUser(req.user.id, 3);
+  const userId = req.user?.id;
+  if (userId) {
+    await purgeOldAnalysesForUser(userId, 3);
   }
-  const analyses = await db
-    .select()
-    .from(analysesTable)
-    .orderBy(desc(analysesTable.createdAt));
-  const recentAnalyses = toAnalyses(analyses).slice(0, 3);
+
+  const userAnalyses = userId
+    ? await db
+        .select()
+        .from(analysesTable)
+        .where(eq(analysesTable.ownerId, userId))
+        .orderBy(desc(analysesTable.createdAt))
+    : [];
+
+  const recentAnalyses = toAnalyses(userAnalyses).slice(0, 3);
+  const activeCount = userAnalyses.filter((a) => a.status !== "complete").length;
+  const readyCount = userAnalyses.filter((a) => a.status === "complete").length;
 
   res.json(
     GetDashboardResponse.parse({
-      activeAnalyses: analyses.filter((analysis) => analysis.status !== "complete").length,
-      reportsReady: analyses.filter((analysis) => analysis.status === "complete").length,
-      quotesReceived: mockQuotes.length,
-      potentialSavings: 1840,
+      activeAnalyses: activeCount,
+      reportsReady: readyCount,
+      quotesReceived: userAnalyses.length,
+      potentialSavings: readyCount > 0 ? 1840 : 0,
       recentAnalyses,
     }),
   );
-  req.log.info({ count: recentAnalyses.length }, "Returned dashboard summary");
+  req.log.info({ count: recentAnalyses.length, userId }, "Returned dashboard summary");
 });
 
 router.get("/analyses", async (req, res): Promise<void> => {
@@ -424,15 +431,17 @@ router.get("/analyses", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Authentication is required." });
     return;
   }
-  await ensureMockAnalyses();
-  await purgeOldAnalysesForUser(req.user.id, 3);
+  const userId = req.user.id;
+  await purgeOldAnalysesForUser(userId, 3);
+
   const analyses = await db
     .select()
     .from(analysesTable)
-    .where(or(eq(analysesTable.ownerId, req.user.id), isNull(analysesTable.ownerId)))
+    .where(eq(analysesTable.ownerId, userId))
     .orderBy(desc(analysesTable.createdAt));
+
   res.json(ListAnalysesResponse.parse(toAnalyses(analyses)));
-  req.log.info({ count: analyses.length }, "Listed analyses");
+  req.log.info({ count: analyses.length, userId }, "Listed user analyses");
 });
 
 router.post("/analyses", async (req, res): Promise<void> => {
