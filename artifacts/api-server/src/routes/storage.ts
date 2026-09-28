@@ -13,13 +13,14 @@ import crypto from 'crypto';
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB maximum to protect Supabase DB storage
 const ALLOWED_UPLOAD_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
   'image/png',
   'image/webp',
 ]);
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp']);
 
 /**
  * PUT /storage/uploads/put/:id
@@ -27,7 +28,7 @@ const ALLOWED_UPLOAD_TYPES = new Set([
  */
 router.put(
   '/storage/uploads/put/:id',
-  express.raw({ type: '*/*', limit: '25mb' }),
+  express.raw({ type: '*/*', limit: '6mb' }),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -37,6 +38,11 @@ router.put(
 
       if (!buffer || buffer.length === 0) {
         res.status(400).json({ error: 'No file data received' });
+        return;
+      }
+
+      if (buffer.length > MAX_UPLOAD_BYTES) {
+        res.status(400).json({ error: 'File exceeds maximum 5 MB limit.' });
         return;
       }
 
@@ -73,14 +79,18 @@ router.post(
 
     try {
       const { name, size, contentType } = parsed.data;
+      const extension = name.split('.').pop()?.toLowerCase();
+
       if (
+        !extension ||
+        !ALLOWED_EXTENSIONS.has(extension) ||
         !ALLOWED_UPLOAD_TYPES.has(contentType) ||
         size > MAX_UPLOAD_BYTES ||
         name.includes('/') ||
         name.includes('\\')
       ) {
         res.status(400).json({
-          error: 'Upload a PDF, JPG, PNG, or WEBP file no larger than 25 MB.',
+          error: 'Please upload only PDF, JPG, PNG, or WEBP quotation files up to 5 MB.',
         });
         return;
       }

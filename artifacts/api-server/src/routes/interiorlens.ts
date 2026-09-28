@@ -81,7 +81,8 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
-const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set(["pdf", "jpg", "jpeg", "png", "webp"]);
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB maximum for PostgreSQL database protection
 
 const initialAnalyses = [
   {
@@ -447,8 +448,11 @@ router.post("/analyses", async (req, res): Promise<void> => {
   }
 
   const { fileName, filePath, fileType, fileSize, sourceAnalysisId } = parsed.data;
+  const fileExt = fileName?.split(".").pop()?.toLowerCase();
   if (
     !fileName ||
+    !fileExt ||
+    !ALLOWED_EXTENSIONS.has(fileExt) ||
     !filePath ||
     !fileType ||
     !fileSize ||
@@ -458,7 +462,7 @@ router.post("/analyses", async (req, res): Promise<void> => {
     fileName.includes("/") ||
     fileName.includes("\\")
   ) {
-    res.status(400).json({ error: "Upload metadata is invalid." });
+    res.status(400).json({ error: "Please upload only PDF, JPG, PNG, or WEBP quotation files up to 5 MB." });
     return;
   }
 

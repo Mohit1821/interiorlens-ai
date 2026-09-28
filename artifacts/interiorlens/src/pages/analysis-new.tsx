@@ -14,13 +14,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { createSampleQuote } from "@/lib/sample-quote";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB maximum
 const ALLOWED_TYPES: Record<string, string> = {
   "application/pdf": "PDF",
   "image/jpeg": "JPG",
   "image/png": "PNG",
   "image/webp": "WEBP",
 };
+const ALLOWED_EXTENSIONS = new Set(["pdf", "jpg", "jpeg", "png", "webp"]);
 
 type UploadUrlResponse = {
   uploadURL: string;
@@ -32,9 +33,10 @@ type AnalysisResponse = {
 };
 
 function getFileContentType(file: File) {
-  if (ALLOWED_TYPES[file.type]) return file.type;
-
   const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !ALLOWED_EXTENSIONS.has(extension)) return null;
+
+  if (ALLOWED_TYPES[file.type]) return file.type;
   if (extension === "pdf") return "application/pdf";
   if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
   if (extension === "png") return "image/png";
@@ -74,7 +76,7 @@ export default function NewAnalysisPage() {
 
     if (candidate.size > MAX_FILE_SIZE) {
       setFile(null);
-      setError("This file is too large. Please upload a quotation up to 20 MB.");
+      setError("This file is too large. Please upload a quotation up to 5 MB.");
       return;
     }
 
@@ -249,7 +251,7 @@ export default function NewAnalysisPage() {
                 </div>
                 <p className="mt-5 text-sm font-medium">Click or drag to upload</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  PDF, JPG, PNG, or WEBP · up to 20 MB
+                  PDF, JPG, PNG, or WEBP · up to 5 MB
                 </p>
               </>
             )}
