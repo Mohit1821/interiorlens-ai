@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { matchingGooglePlaces } from "./vendorPlaceMatching";
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = process.env.ANTHROPIC_VENDOR_MODEL || "claude-3-5-haiku-20241022";
 const MAX_TOKENS = 8_192;
 const DEFAULT_SOURCES = [
   "consumercomplaints.in",

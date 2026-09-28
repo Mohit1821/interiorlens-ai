@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { QuoteFinding } from "./quoteIntelligence";
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = process.env.ANTHROPIC_REPORT_MODEL || "claude-3-5-haiku-20241022";
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export type QuoteVerdict = {

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { QuoteFinding } from "./quoteIntelligence";
 
-const VENDOR_MESSAGE_MODEL = "claude-haiku-4-5";
+const VENDOR_MESSAGE_MODEL = process.env.ANTHROPIC_MESSAGE_MODEL || "claude-3-5-haiku-20241022";
 const MAX_VENDOR_MESSAGE_TOKENS = 8_192;
 
 const anthropic = new Anthropic({

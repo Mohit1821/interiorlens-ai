@@ -12,14 +12,12 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </Link>
           <nav className="flex items-center gap-2 text-[6px] font-medium sm:gap-6 sm:text-[9px]">
             <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How it works</Link>
-            <Link href="/sample-report" className="text-muted-foreground hover:text-foreground transition-colors">Sample</Link>
-            <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-            <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+            <Link href="/sample-report" className="text-muted-foreground hover:text-foreground transition-colors">Sample Report</Link>
+            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">Workspace</Link>
           </nav>
           <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/dashboard" className="text-[6px] font-medium text-muted-foreground hover:text-foreground transition-colors sm:text-[9px]">Sign in</Link>
             <Button className="h-6 px-2 text-[6px] sm:h-8 sm:px-4 sm:text-[9px]" asChild>
-              <Link href="/analysis/new">Analyse Quote</Link>
+              <Link href="/analysis/new">Analyse Quote (Free)</Link>
             </Button>
           </div>
         </div>
@@ -37,7 +35,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <div className="flex flex-col gap-1">
               <span className="font-mono text-[6px] uppercase tracking-wider text-muted-foreground sm:text-[8px]">Product</span>
               <Link href="/how-it-works" className="text-[7px] hover:text-primary sm:text-[9px]">Workflow</Link>
-              <Link href="/pricing" className="text-[7px] hover:text-primary sm:text-[9px]">Pricing</Link>
               <Link href="/sample-report" className="text-[7px] hover:text-primary sm:text-[9px]">Sample</Link>
             </div>
             <div className="flex flex-col gap-1">

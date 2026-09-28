@@ -1,6 +1,7 @@
 import type { AuthUser } from '@workspace/api-zod';
 import { type NextFunction, type Request, type Response } from 'express';
 import * as oidc from 'openid-client';
+import crypto from 'node:crypto';
 
 import {
   clearSession,
@@ -61,25 +62,40 @@ export async function authMiddleware(
   } as Request['isAuthenticated'];
 
   const sid = getSessionId(req);
-  if (!sid) {
-    next();
-    return;
+  if (sid) {
+    const session = await getSession(sid);
+    if (session?.user?.id) {
+      const refreshed = await refreshIfExpired(sid, session);
+      if (refreshed) {
+        req.user = refreshed.user;
+      } else {
+        await clearSession(res, sid);
+      }
+    } else {
+      await clearSession(res, sid);
+    }
   }
 
-  const session = await getSession(sid);
-  if (!session?.user?.id) {
-    await clearSession(res, sid);
-    next();
-    return;
+  // If not logged in via OIDC, assign a persistent Guest user
+  if (!req.user) {
+    let guestId = req.cookies?.guest_session;
+    if (!guestId) {
+      guestId = `guest_${crypto.randomUUID().slice(0, 12)}`;
+      res.cookie('guest_session', guestId, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: '/',
+        sameSite: 'lax',
+      });
+    }
+    req.user = {
+      id: guestId,
+      email: null,
+      firstName: 'Guest',
+      lastName: 'User',
+      profileImageUrl: null,
+    };
   }
 
-  const refreshed = await refreshIfExpired(sid, session);
-  if (!refreshed) {
-    await clearSession(res, sid);
-    next();
-    return;
-  }
-
-  req.user = refreshed.user;
   next();
 }

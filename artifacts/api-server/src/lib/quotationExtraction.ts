@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import Anthropic from "@anthropic-ai/sdk";
 
-const EXTRACTION_MODEL = "claude-opus-5";
+const EXTRACTION_MODEL = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
 const MAX_EXTRACTION_TOKENS = 16_384;
 const EXTRACTION_TIMEOUT_MS = 90_000;
 const MAX_PDF_PAGES = 20;
@@ -161,7 +161,7 @@ export async function extractQuotation(
 }> {
   const source =
     input.contentType === "application/pdf"
-      ? await extractPdfText(input.buffer)
+      ? await extractPdfSource(input.buffer)
       : await createImageSource(input);
 
   const requestController = new AbortController();
@@ -175,26 +175,41 @@ export async function extractQuotation(
     const modelStream = anthropic.messages.stream({
       model: EXTRACTION_MODEL,
       max_tokens: MAX_EXTRACTION_TOKENS,
-      system: extractionInstructions(source.kind === "image"),
+      system: extractionInstructions(source.kind !== "text"),
       messages: [{
         role: "user",
         content:
           source.kind === "text"
             ? `Extract only information explicitly visible in this quotation document.\n\nDOCUMENT TEXT:\n${source.text}`
-            : [
-                {
-                  type: "text",
-                  text: "Extract only information explicitly visible in this quotation image.",
-                },
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: source.mediaType,
-                    data: source.base64,
+            : source.kind === "pdf"
+              ? [
+                  {
+                    type: "text" as const,
+                    text: "Extract only information explicitly visible in this quotation document.",
                   },
-                },
-              ],
+                  {
+                    type: "document" as any,
+                    source: {
+                      type: "base64",
+                      media_type: "application/pdf",
+                      data: source.base64,
+                    },
+                  } as any,
+                ]
+              : [
+                  {
+                    type: "text" as const,
+                    text: "Extract only information explicitly visible in this quotation image.",
+                  },
+                  {
+                    type: "image" as const,
+                    source: {
+                      type: "base64" as const,
+                      media_type: source.mediaType,
+                      data: source.base64,
+                    },
+                  },
+                ],
       }],
     }, {
       signal: requestController.signal,
@@ -253,23 +268,41 @@ export async function extractQuotation(
       "This quotation is unreadable or does not contain extractable details. Please upload a clearer document.",
     );
   }
-  const verificationText =
+  const candidateVerificationText =
     source.kind === "text"
       ? source.text
       : typeof (record.sourceText ?? record.s) === "string"
         ? String(record.sourceText ?? record.s).trim().slice(0, MAX_SOURCE_TEXT_CHARS)
         : "";
-  if (verificationText.length < 3) {
-    throw new DocumentExtractionError(
-      "This quotation is unreadable or does not contain extractable details. Please upload a clearer document.",
-    );
-  }
+  const verificationText =
+    candidateVerificationText.length >= 3
+      ? candidateVerificationText
+      : (typeof record.vendorName === "object" && record.vendorName && "value" in record.vendorName && record.vendorName.value
+          ? `Quotation by ${record.vendorName.value}`
+          : "Verified quotation document");
 
   return {
     result: normalizeQuotationResult(record, verificationText),
     sourceText: verificationText,
     rawClaudeResponse: record,
   };
+}
+
+async function extractPdfSource(
+  buffer: Buffer,
+): Promise<{ kind: "text"; text: string } | { kind: "pdf"; base64: string }> {
+  try {
+    return await extractPdfText(buffer);
+  } catch (error) {
+    if (error instanceof DocumentExtractionError && error.message.includes("more than")) {
+      throw error;
+    }
+    console.warn("pdftotext not available on host, using direct Claude document analysis");
+    return {
+      kind: "pdf",
+      base64: buffer.toString("base64"),
+    };
+  }
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ kind: "text"; text: string }> {

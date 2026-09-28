@@ -120,29 +120,22 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="pricing" className="scroll-mt-16">
-          <div className="mx-auto max-w-[900px] px-5 py-7 sm:px-8 sm:py-20">
-            <div className="text-center">
-              <h2 className="font-sans text-[14px] font-semibold tracking-[-0.02em] sm:text-2xl">
-                Fair &amp; Simple Pricing
-              </h2>
-            </div>
-            <div className="mx-auto mt-5 grid max-w-[560px] grid-cols-2 gap-2 sm:mt-10 sm:gap-4">
-              <PriceCard
-                eyebrow="Trial"
-                title="Free"
-                copy="Test your quote analysis against our best example."
-                cta="Try Now"
-                href="/sample-report"
-              />
-              <PriceCard
-                eyebrow="Full Project"
-                title="₹999"
-                copy="Complete analysis of a quote and get clarity for your project."
-                cta="Full Review"
-                href="/analysis/new"
-                featured
-              />
+        <section className="scroll-mt-16 bg-[#fffaf5] border-y border-[#f0ede6]">
+          <div className="mx-auto max-w-[900px] px-5 py-10 sm:px-8 sm:py-16 text-center">
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">100% Free Instant Access</span>
+            <h2 className="mt-2 font-sans text-xl font-semibold tracking-[-0.02em] sm:text-3xl text-foreground">
+              Instant AI Quotation Review — No Fees or Sign-up Required
+            </h2>
+            <p className="mt-2 text-xs text-muted-foreground max-w-md mx-auto">
+              Upload any PDF or image quotation. We highlight hidden costs, missing scopes, and risky payment terms in under 30 seconds.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button asChild className="rounded-full px-6 text-xs sm:text-sm">
+                <Link href="/analysis/new">Upload Quote Now (Free)</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full px-6 text-xs sm:text-sm">
+                <Link href="/sample-report">View Sample Report</Link>
+              </Button>
             </div>
           </div>
         </section>

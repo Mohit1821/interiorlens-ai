@@ -109,15 +109,6 @@ export default function NewAnalysisPage() {
     setIsSubmitting(true);
 
     try {
-      const authResponse = await fetch("/api/auth/user", {
-        credentials: "include",
-      });
-      const auth = (await authResponse.json()) as { user?: { id: string } | null };
-      if (!auth.user) {
-        beginLogin();
-        return;
-      }
-
       const urlResponse = await fetch("/api/storage/uploads/request-url", {
         method: "POST",
         credentials: "include",
@@ -275,8 +266,8 @@ export default function NewAnalysisPage() {
               <div>
                 <p className="text-sm font-semibold">No quote handy? Try a synthetic sample.</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  A fictional interior quotation with itemized costs and terms. It runs through the
-                  same analysis as your own PDF. Sign-in is required to analyze it.
+                  A sample interior quotation with itemized costs and terms. It runs through the
+                  same deep AI analysis as your own document. No sign-in required.
                 </p>
               </div>
               <Button
