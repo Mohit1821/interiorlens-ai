@@ -47,11 +47,11 @@ const publicPath = candidatePaths.find((p) => fs.existsSync(p));
 
 if (publicPath) {
   app.use(express.static(publicPath));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) {
-      return next();
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api")) {
+      return res.sendFile(path.join(publicPath, "index.html"));
     }
-    res.sendFile(path.join(publicPath, "index.html"));
+    next();
   });
 }
 
