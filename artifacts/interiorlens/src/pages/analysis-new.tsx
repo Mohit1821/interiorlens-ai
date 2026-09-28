@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useLocation, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createSampleQuote } from "@/lib/sample-quote";
+import { useAuth } from "@/context/auth-context";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB maximum
 const ALLOWED_TYPES: Record<string, string> = {
@@ -52,6 +53,7 @@ function readApiError(response: Response, fallback: string) {
 }
 
 export default function NewAnalysisPage() {
+  const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const sourceAnalysisId = React.useMemo(
@@ -175,13 +177,25 @@ export default function NewAnalysisPage() {
             <a href="/quotes" className="hover:text-foreground">Assets</a>
             <span className="border-b-2 border-primary pb-1 font-medium text-primary">Quote Analysis</span>
           </nav>
-          <button
-            type="button"
-            onClick={beginLogin}
-            className="text-xs font-medium text-[#5d5b57] hover:text-foreground"
-          >
-            Sign in
-          </button>
+          {user && user.email ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-foreground">{user.firstName || user.email}</span>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="text-xs font-medium text-muted-foreground hover:text-destructive"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login?returnTo=/analysis/new"
+              className="text-xs font-medium text-[#5d5b57] hover:text-foreground"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </header>
 

@@ -229,6 +229,10 @@ router.get('/login', async (req: Request, res: Response) => {
   }
 
   const config = await getOidcConfig();
+  if (!config) {
+    res.redirect(returnTo || '/dashboard');
+    return;
+  }
   const callbackUrl = `${getOrigin(req)}/api/callback`;
 
   const state = oidc.randomState();

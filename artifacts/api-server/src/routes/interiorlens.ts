@@ -1276,6 +1276,7 @@ router.get("/insights", (req, res): void => {
 });
 
 router.get("/account", async (req, res): Promise<void> => {
+  const userId = req.user?.id || "guest_user";
   const isGuest = !req.user?.email;
   const displayName =
     [req.user?.firstName, req.user?.lastName].filter(Boolean).join(" ") ||
@@ -1285,11 +1286,11 @@ router.get("/account", async (req, res): Promise<void> => {
   const userAnalyses = await db
     .select({ id: analysesTable.id })
     .from(analysesTable)
-    .where(eq(analysesTable.ownerId, req.user.id));
+    .where(eq(analysesTable.ownerId, userId));
 
   res.json(
     GetAccountResponse.parse({
-      id: req.user.id,
+      id: userId,
       name: displayName,
       email: email,
       plan: "Free Beta",
@@ -1297,7 +1298,7 @@ router.get("/account", async (req, res): Promise<void> => {
       analysesLimit: 3,
     }),
   );
-  req.log.info({ userId: req.user.id }, "Returned account details");
+  req.log.info({ userId }, "Returned account details");
 });
 
 export default router;
