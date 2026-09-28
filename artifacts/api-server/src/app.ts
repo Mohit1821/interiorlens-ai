@@ -1,3 +1,5 @@
+import path from "node:path";
+import fs from "node:fs";
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -34,5 +36,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(authMiddleware);
 
 app.use("/api", router);
+
+const candidatePaths = [
+  path.resolve(process.cwd(), "artifacts/interiorlens/dist/public"),
+  path.resolve(__dirname, "../../interiorlens/dist/public"),
+  path.resolve(__dirname, "../interiorlens/dist/public"),
+];
+
+const publicPath = candidatePaths.find((p) => fs.existsSync(p));
+
+if (publicPath) {
+  app.use(express.static(publicPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+}
 
 export default app;
