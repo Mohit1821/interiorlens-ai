@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import Anthropic from "@anthropic-ai/sdk";
 
-const EXTRACTION_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
+const EXTRACTION_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
 const MAX_EXTRACTION_TOKENS = 16_384;
-const EXTRACTION_TIMEOUT_MS = 90_000;
+const EXTRACTION_TIMEOUT_MS = 45_000;
 const MAX_PDF_PAGES = 20;
 const MAX_SOURCE_TEXT_CHARS = 60_000;
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -271,9 +271,9 @@ export async function extractQuotation(
   const candidateVerificationText =
     source.kind === "text"
       ? source.text
-      : typeof (record.sourceText ?? record.s) === "string"
+      : typeof (record.sourceText ?? record.s) === "string" && String(record.sourceText ?? record.s).trim().length >= 3
         ? String(record.sourceText ?? record.s).trim().slice(0, MAX_SOURCE_TEXT_CHARS)
-        : "";
+        : buildVerificationTextFromRecord(record);
   const verificationText =
     candidateVerificationText.length >= 3
       ? candidateVerificationText
@@ -663,13 +663,65 @@ async function createImageSource(
   };
 }
 
+export function buildVerificationTextFromRecord(record: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const add = (val: unknown) => {
+    if (typeof val === "string" && val.trim().length > 0) parts.push(val.trim());
+  };
+
+  const f = asRecord(record.f);
+  if (f) {
+    for (const val of Object.values(f)) {
+      if (Array.isArray(val)) {
+        add(val[0]);
+        add(val[1]);
+      } else if (val && typeof val === "object") {
+        const obj = val as Record<string, unknown>;
+        add(obj.value);
+        add(obj.evidence);
+      }
+    }
+  }
+
+  const items = Array.isArray(record.items) ? record.items : Array.isArray(record.lineItems) ? record.lineItems : [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      item.forEach(add);
+    } else if (item && typeof item === "object") {
+      const obj = item as Record<string, unknown>;
+      add(obj.description);
+      add(obj.amount);
+      add(obj.evidence);
+      add(obj.material);
+      add(obj.brand);
+      add(obj.hardware);
+    }
+  }
+
+  const lists = [record.rooms, record.materials, record.brands, record.hardware, record.paymentSchedules];
+  for (const list of lists) {
+    if (Array.isArray(list)) {
+      for (const item of list) {
+        if (Array.isArray(item)) item.forEach(add);
+        else if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          add(obj.value);
+          add(obj.evidence);
+        }
+      }
+    }
+  }
+
+  return parts.filter((p, i, a) => a.indexOf(p) === i).join("\n");
+}
+
 function stripMarkdownCodeFence(content: string): string {
   const trimmed = content.trim();
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return fenced?.[1]?.trim() ?? trimmed;
 }
 
-function extractionInstructions(includeSourceText: boolean): string {
+function extractionInstructions(_includeSourceText: boolean): string {
   return `You extract data from interior quotation documents. Return one minified JSON object only, with no markdown and no whitespace outside string values.
 
 Rules:
@@ -687,9 +739,7 @@ Rules:
 - Extract grandTotalInclusiveGst only from a clearly labeled grand total that includes GST/tax.
 - Keep totalQuotationValue populated with the quoted grand total for compatibility.
 - Use [] for absent list fields.
-- ${includeSourceText
-    ? "Set s to the verbatim legible text visible in the image so extracted values can be verified."
-    : "Set s to an empty string. The source text is already available and must not be repeated."}
+- Set s to an empty string. Extracted fields already contain exact evidence excerpts.
 
 Field definitions for Indian interior quotations:
 
@@ -790,7 +840,7 @@ Important rules from these examples:
 Return this exact structure:
 {
   "r": true,
-  "s": ${includeSourceText ? '"verbatim legible image text"' : '""'},
+  "s": "",
   "f": {
     "vendorName": [null, null, 0],
     "legalName": [null, null, 0],

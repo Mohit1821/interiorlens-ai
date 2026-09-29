@@ -1,4 +1,4 @@
-import { ArrowRight, Check, CircleAlert, FileSearch } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button } from "@/components/ui/button";
@@ -7,32 +7,32 @@ const workflow = [
   {
     number: "01",
     title: "Upload Quote",
-    copy: "Upload a PDF or clear photo of your quotation or contract. No special data needed.",
+    copy: "Upload a PDF or clear photo of your quotation or contract. No special formatting needed.",
   },
   {
     number: "02",
     title: "AI Review",
-    copy: "We analyse costs, scope, and terms for potential gaps and check for standard missing items.",
+    copy: "We analyse costs, scope, and terms for potential gaps, checking for standard missing line items.",
   },
   {
     number: "03",
     title: "Secure Your Project",
-    copy: "Get a clear, practical report with questions to ask your vendor before you commit.",
+    copy: "Get an actionable, itemized report with exact questions to ask your vendor before you commit.",
   },
 ];
 
 const inScope = [
   "Missing line items",
   "Hidden costs",
-  "Materials",
-  "Milestones",
-  "Warranty",
-  "Price anomalies",
+  "Plywood & material grades",
+  "Milestone payments",
+  "Workmanship warranty",
+  "Price inconsistencies",
 ];
 
 const outOfScope = [
   "Vendor recommendations",
-  "Legal advice or representation",
+  "Legal representation",
   "Direct architectural design",
 ];
 
@@ -40,34 +40,38 @@ export default function HomePage() {
   return (
     <PublicLayout>
       <div className="font-sans">
-        <section className="border-b border-border">
-          <div className="mx-auto grid max-w-[900px] grid-cols-[minmax(0,1fr)_minmax(124px,0.62fr)] items-center gap-4 px-5 pb-3 pt-7 sm:gap-12 sm:px-8 sm:pb-24 sm:pt-20">
-            <div className="min-w-0">
-              <h1 className="max-w-[390px] font-sans text-[19px] font-bold leading-[1.02] tracking-[-0.045em] sm:text-5xl">
+        {/* Hero Section */}
+        <section className="border-b border-border bg-gradient-to-b from-[#fcfcf9] to-background">
+          <div className="mx-auto grid max-w-[1040px] grid-cols-1 items-center gap-8 px-5 py-10 sm:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] sm:gap-12 sm:px-8 sm:py-20 lg:py-24">
+            <div className="min-w-0 text-center sm:text-left">
+              <span className="inline-block rounded-full bg-primary/10 px-3 py-1 font-mono text-[10px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                Independent AI Quote Auditor
+              </span>
+              <h1 className="mt-3 font-sans text-2xl font-bold leading-tight tracking-[-0.035em] text-foreground sm:text-4xl lg:text-5xl">
                 Make one of the biggest purchases of your life with confidence.
               </h1>
-              <p className="mt-3 max-w-[390px] text-[6px] leading-[1.55] text-muted-foreground sm:mt-6 sm:text-sm sm:leading-6">
-                Upload your quotation. We&apos;ll highlight hidden costs,
-                missing items, and risky clauses before you sign. Results in
-                under 30 seconds.
+              <p className="mt-3.5 text-sm sm:text-base leading-relaxed text-muted-foreground">
+                Upload your interior quotation. We&apos;ll highlight hidden costs, missing items, unstated materials, and risky payment terms before you sign.
               </p>
-              <div className="mt-4 flex items-center gap-2 sm:mt-7 sm:gap-3">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
                 <Button
-                  size="sm"
+                  size="default"
                   asChild
-                  className="h-5 px-2 text-[6px] sm:h-10 sm:px-5 sm:text-xs"
+                  className="rounded-full px-6 text-sm font-semibold shadow-sm"
                 >
-                  <Link href="/analysis/new">Analyse My Quote</Link>
+                  <Link href="/analysis/new">Analyse My Quote (Free)</Link>
                 </Button>
-                <Link
-                  href="/sample-report"
-                  className="whitespace-nowrap text-[6px] text-foreground underline-offset-4 hover:underline sm:text-xs"
+                <Button
+                  variant="outline"
+                  size="default"
+                  asChild
+                  className="rounded-full px-5 text-sm font-medium"
                 >
-                  View Sample Report
-                </Link>
+                  <Link href="/sample-report">View Sample Report</Link>
+                </Button>
               </div>
-              <p className="mt-3 font-mono text-[5px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-6 sm:text-[9px]">
-                Private · Evidence-backed · Independent
+              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-[#78756f]">
+                Private · Evidence-backed · Ready in &lt;30s
               </p>
             </div>
 
@@ -75,24 +79,26 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="how-it-works" className="scroll-mt-16">
-          <div className="mx-auto max-w-[900px] px-5 py-5 sm:px-8 sm:py-20">
+        {/* How It Works Section */}
+        <section id="how-it-works" className="scroll-mt-16 bg-white py-12 sm:py-20">
+          <div className="mx-auto max-w-[1040px] px-5 sm:px-8">
             <div className="text-center">
-              <h2 className="font-sans text-[14px] font-semibold tracking-[-0.02em] sm:text-2xl">
-                How it Works
+              <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-medium">Simple 3-step process</span>
+              <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
+                How It Works
               </h2>
-              <p className="mt-2 text-[7px] text-muted-foreground sm:text-xs">
-                Simple, transparent, and built for homeowners.
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                Simple, transparent, and built for homeowners and commercial spaces.
               </p>
             </div>
-            <div className="mt-6 grid grid-cols-3 gap-4 sm:mt-12 sm:gap-12">
+            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-8 lg:gap-12">
               {workflow.map((item) => (
-              <div key={item.number} className="min-w-0">
-                  <p className="font-mono text-[8px] text-primary sm:text-[10px]">{item.number}</p>
-                  <h3 className="mt-2 font-sans text-[7px] font-semibold sm:mt-4 sm:text-sm">
+                <div key={item.number} className="rounded-xl border border-border/70 bg-[#fdfdfb] p-6 shadow-sm">
+                  <p className="font-mono text-sm font-bold text-primary">{item.number}</p>
+                  <h3 className="mt-3 font-sans text-base font-semibold text-foreground">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-[5px] leading-[1.45] text-muted-foreground sm:text-[10px] sm:leading-5">
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                     {item.copy}
                   </p>
                 </div>
@@ -101,18 +107,20 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="scope" className="scroll-mt-16">
-          <div className="mx-auto max-w-[900px] px-5 sm:px-8">
-            <div className="rounded-[14px] bg-sidebar px-4 py-5 sm:px-12 sm:py-14">
+        {/* Scope of Analysis Section */}
+        <section id="scope" className="scroll-mt-16 py-12 sm:py-20 bg-background">
+          <div className="mx-auto max-w-[1040px] px-5 sm:px-8">
+            <div className="rounded-2xl border border-border bg-sidebar/50 p-6 sm:p-12">
               <div className="text-center">
-                <h2 className="font-sans text-[14px] font-semibold tracking-[-0.02em] sm:text-2xl">
+                <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-medium">What we cover</span>
+                <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
                   Scope of Analysis
                 </h2>
-                <p className="mt-2 text-[7px] text-muted-foreground sm:text-xs">
-                  Complete transparency on what we check and what we don&apos;t.
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                  Complete transparency on what we verify and what we leave to professionals.
                 </p>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-10 sm:gap-4">
+              <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                 <ScopeCard label="In-scope checks" items={inScope} featured />
                 <ScopeCard label="Out of scope" items={outOfScope} />
               </div>
@@ -120,43 +128,46 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="scroll-mt-16 bg-[#fffaf5] border-y border-[#f0ede6]">
-          <div className="mx-auto max-w-[900px] px-5 py-10 sm:px-8 sm:py-16 text-center">
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">100% Free Instant Access</span>
-            <h2 className="mt-2 font-sans text-xl font-semibold tracking-[-0.02em] sm:text-3xl text-foreground">
-              Instant AI Quotation Review — No Fees or Sign-up Required
+        {/* Call to action banner */}
+        <section className="scroll-mt-16 bg-[#fffaf5] border-y border-[#f0ede6] py-12 sm:py-16">
+          <div className="mx-auto max-w-[900px] px-5 text-center sm:px-8">
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-primary font-semibold">100% Free Instant Analysis</span>
+            <h2 className="mt-2 font-sans text-xl font-bold tracking-[-0.02em] text-foreground sm:text-3xl">
+              Upload Your Quotation — Results in Under 30 Seconds
             </h2>
-            <p className="mt-2 text-xs text-muted-foreground max-w-md mx-auto">
-              Upload any PDF or image quotation. We highlight hidden costs, missing scopes, and risky payment terms in under 30 seconds.
+            <p className="mt-3 text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
+              Upload any PDF or image quotation. We highlight hidden costs, missing scopes, and risky payment terms before you pay your deposit.
             </p>
-            <div className="mt-6 flex justify-center gap-3">
-              <Button asChild className="rounded-full px-6 text-xs sm:text-sm">
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <Button asChild className="rounded-full px-7 text-sm font-semibold shadow-sm">
                 <Link href="/analysis/new">Upload Quote Now (Free)</Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-full px-6 text-xs sm:text-sm">
+              <Button asChild variant="outline" className="rounded-full px-6 text-sm">
                 <Link href="/sample-report">View Sample Report</Link>
               </Button>
             </div>
           </div>
         </section>
 
-        <section>
-          <div className="mx-auto max-w-[900px] px-5 pb-9 sm:px-8 sm:pb-20">
-            <div className="mx-auto max-w-[560px] rounded-[12px] bg-sidebar px-5 py-6 text-center sm:px-10 sm:py-12">
-              <h2 className="font-sans text-[14px] font-semibold sm:text-2xl">
+        {/* Bottom CTA */}
+        <section className="py-12 sm:py-20">
+          <div className="mx-auto max-w-[900px] px-5 sm:px-8">
+            <div className="mx-auto max-w-xl rounded-2xl border border-border bg-sidebar p-8 text-center sm:p-12 shadow-sm">
+              <h2 className="font-sans text-xl font-bold text-foreground sm:text-2xl">
                 Secure your investment today.
               </h2>
-              <p className="mt-2 text-[6px] leading-4 text-muted-foreground sm:text-xs">
-                Spend 30 seconds checking for hidden risks that could cost you
-                much more later.
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Spend 30 seconds checking for hidden risks that could cost you lakhs later.
               </p>
-              <Button
-                size="sm"
-                className="mt-4 h-5 px-3 text-[6px] sm:h-9 sm:text-xs"
-                asChild
-              >
-                <Link href="/analysis/new">Analyse My Quote Now</Link>
-              </Button>
+              <div className="mt-6">
+                <Button
+                  size="default"
+                  className="rounded-full px-7 text-sm font-semibold shadow-sm"
+                  asChild
+                >
+                  <Link href="/analysis/new">Analyse My Quote Now</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -168,36 +179,38 @@ export default function HomePage() {
 function ExampleReviewCard() {
   return (
     <div className="min-w-0">
-      <div className="rounded-[10px] border border-border bg-white p-2.5 shadow-[0_6px_20px_rgba(28,24,20,0.05)] sm:p-5">
+      <div className="rounded-xl border border-border bg-white p-5 shadow-[0_6px_24px_rgba(28,24,20,0.06)] sm:p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-mono text-[6px] uppercase tracking-[0.16em] text-muted-foreground sm:text-[8px]">
-              Illustrative report
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">
+              Live Preview
             </p>
-            <h2 className="mt-1.5 font-sans text-[9px] font-semibold sm:text-lg">
-              Transparency
+            <h2 className="mt-1 font-sans text-base font-bold text-foreground sm:text-lg">
+              Transparency Score
             </h2>
           </div>
-          <span className="font-mono text-[13px] font-semibold text-primary sm:text-3xl">
-            72<span className="text-[9px] sm:text-base">/100</span>
+          <span className="font-mono text-2xl font-bold text-primary sm:text-3xl">
+            72<span className="text-xs sm:text-sm text-muted-foreground">/100</span>
           </span>
         </div>
-        <div className="mt-3 border-t border-border pt-2 sm:mt-6 sm:pt-4">
-          <div className="flex gap-2">
-            <CircleAlert className="mt-0.5 h-2.5 w-2.5 shrink-0 text-primary sm:h-3 sm:w-3" />
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="flex items-start gap-2.5">
+            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div>
-              <p className="text-[5px] font-semibold sm:text-[9px]">Hidden Cost Detected</p>
-              <p className="mt-0.5 text-[4px] leading-2.5 text-muted-foreground sm:text-[8px] sm:leading-4">
-                A scope item is missing from the supplied quote.
+              <p className="text-xs font-semibold text-foreground">Hidden Cost Detected</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Base cabinetry listed without hardware brand specification or warranty.
               </p>
             </div>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between border-t border-border pt-2 sm:mt-6 sm:pt-4">
-          <p className="font-mono text-[5px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[7px]">
-            Illustrative signal
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Audit Checklist
           </p>
-          <span className="text-[5px] text-primary sm:text-[7px]">View report →</span>
+          <Link href="/sample-report" className="text-xs font-medium text-primary hover:underline">
+            View full report →
+          </Link>
         </div>
       </div>
     </div>
@@ -215,71 +228,24 @@ function ScopeCard({
 }) {
   return (
     <div
-      className={`rounded-[9px] border p-2.5 sm:p-5 ${
-        featured ? "border-primary/20 bg-white" : "border-border bg-white/50"
+      className={`rounded-xl border p-5 sm:p-6 ${
+        featured ? "border-primary/25 bg-white shadow-sm" : "border-border bg-white/70"
       }`}
     >
-      <p className="font-mono text-[6px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[8px]">
+      <p className="font-mono text-xs uppercase tracking-[0.14em] text-foreground font-semibold">
         {label}
       </p>
-      <ul className={`mt-3 grid gap-1.5 sm:mt-5 sm:gap-3 ${featured ? "grid-cols-2" : ""}`}>
+      <ul className={`mt-4 grid gap-2.5 sm:gap-3 ${featured ? "grid-cols-1 sm:grid-cols-2" : ""}`}>
         {items.map((item) => (
           <li
             key={item}
-            className="flex items-start gap-1.5 text-[6px] leading-3 text-muted-foreground sm:text-[9px] sm:leading-4"
+            className="flex items-start gap-2 text-xs sm:text-sm leading-relaxed text-muted-foreground"
           >
-            <Check className="mt-0.5 h-2 w-2 shrink-0 text-primary sm:h-3 sm:w-3" />
-            {item}
+            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{item}</span>
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function PriceCard({
-  eyebrow,
-  title,
-  copy,
-  cta,
-  href,
-  featured = false,
-}: {
-  eyebrow: string;
-  title: string;
-  copy: string;
-  cta: string;
-  href: string;
-  featured?: boolean;
-}) {
-  return (
-    <div
-      className={`relative flex min-w-0 flex-col rounded-[10px] border p-2.5 text-center sm:p-5 ${
-        featured
-          ? "border-primary/20 bg-white shadow-[0_8px_20px_rgba(28,24,20,0.05)]"
-          : "border-border bg-white"
-      }`}
-    >
-      {featured && (
-        <span className="absolute -right-1.5 -top-2 rounded-sm bg-primary px-1.5 py-0.5 font-mono text-[5px] uppercase tracking-wider text-white sm:text-[7px]">
-          Most popular
-        </span>
-      )}
-      <p className="font-mono text-[6px] uppercase tracking-[0.15em] text-muted-foreground sm:text-[8px]">
-        {eyebrow}
-      </p>
-      <p className="mt-1.5 font-sans text-[14px] font-semibold sm:text-2xl">{title}</p>
-      <p className="mx-auto mt-1.5 max-w-[145px] text-[5px] leading-2.5 text-muted-foreground sm:mt-3 sm:text-[9px] sm:leading-4">
-        {copy}
-      </p>
-      <Button
-        variant={featured ? "default" : "outline"}
-        size="sm"
-        className="mt-3 h-5 w-full px-1 text-[5px] sm:mt-5 sm:h-8 sm:text-[9px]"
-        asChild
-      >
-        <Link href={href}>{cta}</Link>
-      </Button>
     </div>
   );
 }

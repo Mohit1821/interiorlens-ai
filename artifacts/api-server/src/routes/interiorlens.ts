@@ -732,126 +732,98 @@ router.post("/analyses/:id/extraction", async (req, res): Promise<void> => {
     return;
   }
 
-  const requestAbortController = new AbortController();
-  const abortExtraction = () => requestAbortController.abort();
-  req.once("aborted", abortExtraction);
+  const uploadedFilePath = analysis.uploadedFilePath;
+  const uploadedFileType = analysis.uploadedFileType;
+  const uploadedFileSize = analysis.uploadedFileSize;
 
-  try {
-    const objectFile = await objectStorageService.getObjectEntityFile(
-      analysis.uploadedFilePath,
-    );
-    const [metadata] = await objectFile.getMetadata();
-    const actualSize = Number(metadata.size);
-    if (
-      metadata.contentType !== analysis.uploadedFileType ||
-      !Number.isFinite(actualSize) ||
-      actualSize < 1 ||
-      actualSize > MAX_UPLOAD_BYTES ||
-      actualSize !== analysis.uploadedFileSize
-    ) {
-      throw new DocumentExtractionError(
-        "This upload's file details could not be verified. Please upload the quotation again.",
+  // Return immediately so the HTTP response is instantaneous (<50ms) and never subject to proxy timeouts
+  res.json(toExtractionResponse(created, analysis.id));
+
+  // Run extraction in background asynchronously
+  void (async () => {
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        uploadedFilePath,
+      );
+      const [metadata] = await objectFile.getMetadata();
+      const actualSize = Number(metadata.size);
+      if (
+        metadata.contentType !== uploadedFileType ||
+        !Number.isFinite(actualSize) ||
+        actualSize < 1 ||
+        actualSize > MAX_UPLOAD_BYTES ||
+        actualSize !== uploadedFileSize
+      ) {
+        throw new DocumentExtractionError(
+          "This upload's file details could not be verified. Please upload the quotation again.",
+        );
+      }
+      const [buffer] = await objectFile.download();
+      const { result, sourceText } = await extractQuotation({
+        buffer,
+        contentType: uploadedFileType,
+        onRawClaudeResponse: async (rawClaudeResponse) => {
+          await db
+            .update(quotationExtractionsTable)
+            .set({ rawClaudeResponse, updatedAt: new Date() })
+            .where(
+              and(
+                eq(quotationExtractionsTable.id, created.id),
+                eq(quotationExtractionsTable.leaseToken, leaseToken),
+              ),
+            );
+        },
+      });
+
+      await deleteEvidenceForAnalysisSource(analysis.id, "uploaded_document");
+      await persistQuotationEvidence(analysis.id, result);
+      await db
+        .update(quotationExtractionsTable)
+        .set({
+          status: "complete",
+          sourceText,
+          extractedJson: result,
+          model: EXTRACTION_MODEL,
+          error: null,
+          leaseToken: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(quotationExtractionsTable.id, created.id),
+            eq(quotationExtractionsTable.leaseToken, leaseToken),
+          ),
+        );
+
+      req.log.info({ analysisId: analysis.id }, "Completed background quotation extraction");
+    } catch (error) {
+      const message =
+        error instanceof DocumentExtractionError
+          ? error.message
+          : "We couldn't extract this quotation. Please try a clearer document.";
+
+      await db
+        .update(quotationExtractionsTable)
+        .set({
+          status: "failed",
+          error: message,
+          model: null,
+          leaseToken: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(quotationExtractionsTable.id, created.id),
+            eq(quotationExtractionsTable.leaseToken, leaseToken),
+          ),
+        );
+
+      req.log.warn(
+        { analysisId: analysis.id, err: error },
+        "Background quotation extraction failed",
       );
     }
-    const [buffer] = await objectFile.download();
-    const { result, sourceText } = await extractQuotation({
-      buffer,
-      contentType: analysis.uploadedFileType,
-      signal: requestAbortController.signal,
-      onRawClaudeResponse: async (rawClaudeResponse) => {
-        const [persisted] = await db
-          .update(quotationExtractionsTable)
-          .set({ rawClaudeResponse })
-          .where(
-            and(
-              eq(quotationExtractionsTable.id, created.id),
-              eq(quotationExtractionsTable.leaseToken, leaseToken),
-            ),
-          )
-          .returning({ id: quotationExtractionsTable.id });
-        if (!persisted) {
-          throw new DocumentExtractionError(
-            "This quotation extraction was superseded. Please try again.",
-          );
-        }
-      },
-    });
-
-    await deleteEvidenceForAnalysisSource(analysis.id, "uploaded_document");
-    await persistQuotationEvidence(analysis.id, result);
-    const [completed] = await db
-      .update(quotationExtractionsTable)
-      .set({
-        status: "complete",
-        sourceText,
-        extractedJson: result,
-        model: EXTRACTION_MODEL,
-        error: null,
-        leaseToken: null,
-      })
-      .where(
-        and(
-          eq(quotationExtractionsTable.id, created.id),
-          eq(quotationExtractionsTable.leaseToken, leaseToken),
-        ),
-      )
-      .returning();
-
-    if (!completed) {
-      const [latest] = await db
-        .select()
-        .from(quotationExtractionsTable)
-        .where(eq(quotationExtractionsTable.id, created.id));
-      res.json(toExtractionResponse(latest, analysis.id));
-      return;
-    }
-
-    req.log.info({ analysisId: analysis.id }, "Completed quotation extraction");
-    res.json(toExtractionResponse(completed, analysis.id));
-  } catch (error) {
-    const message =
-      error instanceof DocumentExtractionError
-        ? error.message
-        : "We couldn't extract this quotation. Please try a clearer document.";
-
-    const [failed] = await db
-      .update(quotationExtractionsTable)
-      .set({
-        status: "failed",
-        error: message,
-        model: null,
-        leaseToken: null,
-      })
-      .where(
-        and(
-          eq(quotationExtractionsTable.id, created.id),
-          eq(quotationExtractionsTable.leaseToken, leaseToken),
-        ),
-      )
-      .returning();
-
-    req.log.warn(
-      { analysisId: analysis.id, err: error },
-      "Quotation extraction failed",
-    );
-    if (res.destroyed) {
-      return;
-    }
-    if (!failed) {
-      const [latest] = await db
-        .select()
-        .from(quotationExtractionsTable)
-        .where(eq(quotationExtractionsTable.id, created.id));
-      res.json(toExtractionResponse(latest, analysis.id));
-      return;
-    }
-
-    res
-      .status(error instanceof DocumentExtractionError ? 422 : 500)
-      .json(toExtractionResponse(failed, analysis.id));
-  } finally {
-    req.off("aborted", abortExtraction);
-  }
+  })();
 });
 
 router.get("/analyses/:id/intelligence", async (req, res): Promise<void> => {
@@ -1220,20 +1192,18 @@ router.post("/analyses/:id/intelligence", async (req, res): Promise<void> => {
     res.json(AnalyzeQuoteIntelligenceResponse.parse(toIntelligenceResponse(concurrent, analysis.id, extraction)));
     return;
   }
-  try {
-    const heartbeat = setInterval(() => {
-      void db.update(quoteIntelligenceRunsTable)
-        .set({ updatedAt: new Date() })
-        .where(and(
-          eq(quoteIntelligenceRunsTable.id, claimed.id),
-          eq(quoteIntelligenceRunsTable.leaseToken, leaseToken),
-        ));
-    }, 60_000);
-    let result;
+  const extractionResult = extraction.extractedJson as QuotationExtractionResult;
+  const extractionSourceText = extraction.sourceText;
+
+  // Respond immediately so client receives { status: "processing" } in <20ms and never hits proxy timeouts
+  res.json(AnalyzeQuoteIntelligenceResponse.parse(toIntelligenceResponse(claimed, analysis.id, extraction)));
+
+  // Run intelligence analysis in background asynchronously
+  void (async () => {
     try {
-      result = await analyzeQuotation(
-        extraction.extractedJson as QuotationExtractionResult,
-        extraction.sourceText,
+      let result = await analyzeQuotation(
+        extractionResult,
+        extractionSourceText,
       );
       try {
         result.verdictSummary = await generateVerdictSummary(result.findings);
@@ -1243,30 +1213,23 @@ router.post("/analyses/:id/intelligence", async (req, res): Promise<void> => {
           "Verdict summary generation failed; using deterministic fallback",
         );
       }
-    } finally {
-      clearInterval(heartbeat);
+      await deleteEvidenceForAnalysisSource(analysis.id, "quote_intelligence");
+      await persistQuoteFindingEvidence(analysis.id, result.findings);
+      const [completed] = await db.update(quoteIntelligenceRunsTable).set({
+        status: "complete", findingsJson: result, error: null, model: INTELLIGENCE_MODEL, leaseToken: null, updatedAt: new Date(),
+      }).where(and(eq(quoteIntelligenceRunsTable.id, claimed.id), eq(quoteIntelligenceRunsTable.leaseToken, leaseToken))).returning();
+      if (completed) {
+        await db.update(analysesTable).set({ status: "complete", progress: 100 }).where(eq(analysesTable.id, analysis.id));
+        req.log.info({ analysisId: analysis.id, findings: result.findings.length }, "Completed background quote intelligence");
+      }
+    } catch (error) {
+      const message = "We couldn't complete this quotation review. Please try again.";
+      await db.update(quoteIntelligenceRunsTable).set({
+        status: "failed", error: message, model: null, leaseToken: null, updatedAt: new Date(),
+      }).where(and(eq(quoteIntelligenceRunsTable.id, claimed.id), eq(quoteIntelligenceRunsTable.leaseToken, leaseToken)));
+      req.log.warn({ analysisId: analysis.id, err: error }, "Background quote intelligence failed");
     }
-    await deleteEvidenceForAnalysisSource(analysis.id, "quote_intelligence");
-    await persistQuoteFindingEvidence(analysis.id, result.findings);
-    const [completed] = await db.update(quoteIntelligenceRunsTable).set({
-      status: "complete", findingsJson: result, error: null, model: INTELLIGENCE_MODEL, leaseToken: null,
-    }).where(and(eq(quoteIntelligenceRunsTable.id, claimed.id), eq(quoteIntelligenceRunsTable.leaseToken, leaseToken))).returning();
-    if (completed) {
-      await db.update(analysesTable).set({ status: "complete", progress: 100 }).where(eq(analysesTable.id, analysis.id));
-      req.log.info({ analysisId: analysis.id, findings: result.findings.length }, "Completed quote intelligence");
-      res.json(AnalyzeQuoteIntelligenceResponse.parse(toIntelligenceResponse(completed, analysis.id, extraction)));
-      return;
-    }
-    const [latest] = await db.select().from(quoteIntelligenceRunsTable).where(eq(quoteIntelligenceRunsTable.id, claimed.id));
-    res.json(AnalyzeQuoteIntelligenceResponse.parse(toIntelligenceResponse(latest, analysis.id, extraction)));
-  } catch (error) {
-    const message = "We couldn't complete this quotation review. Please try again.";
-    const [failed] = await db.update(quoteIntelligenceRunsTable).set({
-      status: "failed", error: message, model: null, leaseToken: null,
-    }).where(and(eq(quoteIntelligenceRunsTable.id, claimed.id), eq(quoteIntelligenceRunsTable.leaseToken, leaseToken))).returning();
-    req.log.warn({ analysisId: analysis.id, err: error }, "Quote intelligence failed");
-    res.status(500).json(AnalyzeQuoteIntelligenceResponse.parse(toIntelligenceResponse(failed, analysis.id, extraction)));
-  }
+  })();
 });
 
 router.get("/quotes", (req, res): void => {
