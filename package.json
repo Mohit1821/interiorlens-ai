@@ -18,7 +18,8 @@
   },
   "pnpm": {
     "overrides": {
-      "rollup": "npm:@rollup/wasm-node@^4.62.3"
+      "rollup": "npm:@rollup/wasm-node@^4.62.3",
+      "fast-uri": "^3.1.7"
     }
   }
 }
